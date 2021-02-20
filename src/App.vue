@@ -48,6 +48,10 @@
           <div
             v-for="t of tickers"
             :key="t.name"
+            @click="select(t)"
+            :class="{
+              'border-4': sel === t,
+            }"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
@@ -55,12 +59,12 @@
                 {{ t.name }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ t.prise }}
+                {{ t.price }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
             <button
-              @click="deleteTicker(t)"
+              @click.stop="deleteTicker(t)"
               class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
             >
               <svg
@@ -81,17 +85,23 @@
         </dl>
         <hr class="w-full border-t border-gray-600 my-4" />
 
-        <section class="relative">
+        <section v-if="sel" class="relative">
           <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-            VUE - USD
+            {{ sel.name }} - USD
           </h3>
           <div class="flex items-end border-gray-600 border-b border-l h-64">
-            <div class="bg-purple-800 border w-10 h-24"></div>
-            <div class="bg-purple-800 border w-10 h-32"></div>
-            <div class="bg-purple-800 border w-10 h-48"></div>
-            <div class="bg-purple-800 border w-10 h-16"></div>
+            <div
+              v-for="(bar, idx) in normalizeGraph()"
+              :key="idx"
+              :style="{ height: `${bar}%` }"
+              class="bg-purple-800 border w-10"
+            ></div>
           </div>
-          <button type="button" class="absolute top-0 right-0">
+          <button
+            @click="sel = null"
+            type="button"
+            class="absolute top-0 right-0"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -127,26 +137,50 @@ export default {
   data() {
     return {
       ticker: '',
-      tickers: [
-        { name: 'BTC', prise: '-' },
-        { name: 'BTC2', prise: '-' },
-        { name: 'BTC3', prise: '-' },
-      ],
+      tickers: [],
+      sel: null,
+      graph: [],
     }
   },
   methods: {
     add() {
       if (this.ticker != '') {
-        const newTicker = {
+        const currentTicker = {
           name: this.ticker,
-          prise: '-',
+          price: '-',
         }
-        this.tickers.push(newTicker)
+        this.tickers.push(currentTicker)
+        setInterval(async () => {
+          const f = await fetch(
+            `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=7558d56d941f9b5435e8af6c7c79fa8583f09ef26c78f7816ae22fe6ff7c2f83`
+          )
+          const data = await f.json()
+
+          //currentTicker.price= data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+          this.tickers.find((t) => t.name === currentTicker.name).price =
+            data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+          if (this.sel?.name === currentTicker.name) {
+            this.graph.push(data.USD)
+          }
+        }, 3000)
         this.ticker = ''
       }
     },
-    deleteTicker(t) {
-      this.tickers.splice(t, 1)
+    deleteTicker(tickerToRemove) {
+      console.log(tickerToRemove)
+      // this.tickers.splice(tickerToRemove, 1)
+      this.tickers = this.tickers.filter((t) => t != tickerToRemove)
+    },
+    normalizeGraph() {
+      const maxValue = Math.max(...this.graph)
+      const minValue = Math.min(...this.graph)
+      return this.graph.map(
+        (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      )
+    },
+    select(ticker) {
+      this.sel = ticker
+      this.graph = []
     },
   },
 }
