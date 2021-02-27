@@ -1,7 +1,31 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+    <div
+      v-if="false"
+      class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
+    >
+      <svg
+        class="animate-spin -ml-1 mr-3 h-12 w-12 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </div>
     <div class="container">
-      <div class="w-full my-4"></div>
       <section>
         <div class="flex">
           <div class="max-w-xs">
@@ -11,6 +35,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 v-model="ticker"
+                @input="checkTicker"
                 @keydown.enter="add"
                 type="text"
                 name="wallet"
@@ -18,6 +43,33 @@
                 class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
                 placeholder="Например DOGE"
               />
+            </div>
+            <div
+              class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
+            >
+              <span
+                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+              >
+                BTC
+              </span>
+              <span
+                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+              >
+                DOGE
+              </span>
+              <span
+                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+              >
+                BCH
+              </span>
+              <span
+                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+              >
+                CHD
+              </span>
+            </div>
+            <div v-show="visible" class="text-sm text-red-600">
+              Такой тикер уже добавлен
             </div>
           </div>
         </div>
@@ -140,11 +192,18 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
+      visible: false,
+      coins: [],
     }
   },
   methods: {
     add() {
-      if (this.ticker != '') {
+      if (
+        this.ticker != '' &&
+        !this.tickers.find(
+          (item) => item.name.toUpperCase() == this.ticker.toUpperCase()
+        )
+      ) {
         const currentTicker = {
           name: this.ticker,
           price: '-',
@@ -164,7 +223,26 @@ export default {
           }
         }, 3000)
         this.ticker = ''
+      } else if (
+        this.tickers.find(
+          (item) => item.name.toUpperCase() == this.ticker.toUpperCase()
+        )
+      ) {
+        this.visible = true
       }
+    },
+    async loadCoins() {
+      const f = await fetch(
+        `https://min-api.cryptocompare.com/data/all/coinlist?summary=true`
+      )
+      const dataCoins = await f.json()
+      this.coins = Object.assign([], dataCoins.Data)
+      console.log('coins', this.coins)
+      // const coin = {
+      //   Coin: dataCoins.Data[42],
+      //   Symbol: dataCoins.Data[42].Symbol,
+      //   FullName: dataCoins.Data[42].FullName,
+      // }
     },
     deleteTicker(tickerToRemove) {
       console.log(tickerToRemove)
@@ -178,10 +256,16 @@ export default {
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       )
     },
+    checkTicker() {
+      this.visible = false
+    },
     select(ticker) {
       this.sel = ticker
       this.graph = []
     },
+  },
+  mounted() {
+    this.loadCoins()
   },
 }
 </script>
