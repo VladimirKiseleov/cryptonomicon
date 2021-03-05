@@ -194,9 +194,35 @@ export default {
       graph: [],
       visible: false,
       coins: [],
+      autoCompletedCoins: [],
+    }
+  },
+  created() {
+    const tickersData = localStorage.getItem('cryptonomicon-list')
+    if (tickersData) {
+      this.tickers = JSON.parse(tickersData)
+      this.tickers.forEach((ticker) => {
+        this.subscribeToUpdates(ticker.name)
+      })
     }
   },
   methods: {
+    subscribeToUpdates(tickerName) {
+      setInterval(async () => {
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=7558d56d941f9b5435e8af6c7c79fa8583f09ef26c78f7816ae22fe6ff7c2f83`
+        )
+        const data = await f.json()
+
+        //currentTicker.price= data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+        this.tickers.find((t) => t.name === tickerName).price =
+          data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+        if (this.sel?.name === tickerName) {
+          this.graph.push(data.USD)
+        }
+      }, 3000)
+      this.ticker = ''
+    },
     add() {
       if (
         this.ticker != '' &&
@@ -209,20 +235,9 @@ export default {
           price: '-',
         }
         this.tickers.push(currentTicker)
-        setInterval(async () => {
-          const f = await fetch(
-            `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=7558d56d941f9b5435e8af6c7c79fa8583f09ef26c78f7816ae22fe6ff7c2f83`
-          )
-          const data = await f.json()
 
-          //currentTicker.price= data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
-          this.tickers.find((t) => t.name === currentTicker.name).price =
-            data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
-          if (this.sel?.name === currentTicker.name) {
-            this.graph.push(data.USD)
-          }
-        }, 3000)
-        this.ticker = ''
+        localStorage.setItem('cryptonomicon-list', JSON.stringify(this.tickers))
+        this.subscribeToUpdates(currentTicker.name)
       } else if (
         this.tickers.find(
           (item) => item.name.toUpperCase() == this.ticker.toUpperCase()
@@ -237,13 +252,20 @@ export default {
       )
       const dataCoins = await f.json()
       this.coins = Object.assign([], dataCoins.Data)
-      console.log('coins', this.coins)
+      console.log('coins: ', this.coins)
       // const coin = {
       //   Coin: dataCoins.Data[42],
       //   Symbol: dataCoins.Data[42].Symbol,
       //   FullName: dataCoins.Data[42].FullName,
       // }
+      console.log('coin', this.coins[42])
     },
+    // autoComplete(){
+    //   results= []
+    //   this.coins.find(){
+
+    //   }
+    // },
     deleteTicker(tickerToRemove) {
       console.log(tickerToRemove)
       // this.tickers.splice(tickerToRemove, 1)
