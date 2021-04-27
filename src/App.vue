@@ -203,19 +203,19 @@
 </template>
 
 <script>
-// [ ]6. Наличие в состоянии ЗАВИСИММЫХ ДАННЫХ / Критичность 5+
+// [x]6. Наличие в состоянии ЗАВИСИММЫХ ДАННЫХ / Критичность 5+
 // [ ]2. При удалении остается подписка на загрузку тикера / 5
 // [ ]4. Запросы напрямую внутри компонента / 5
 // [ ]5. Обработка ошибок API / Критичность: 5
 // [ ]3. Количество запросов / 4
-// [ ]8. При удалении тикера не изменятется localstorage / 4
+// [x]8. При удалении тикера не изменятется localstorage / 4
 // [ ]9. localStorage и анонимные вкладки / Критичность: 3
-// [ ]1. Одинаковый код в вотч / 3
+// [x]1. Одинаковый код в вотч / 3
 // [ ]7. График ужасно выглядит если будет много цен / Критичность :2
 // [ ]10. Магические строки и числа (URL, 5т милисек задержки, ключ локал сторадж) / критичность: 1
 // Параллельно
 // [x] График сломан если везде одинаковые значения
-// [] При удалении тикера остается выбор
+// [x] При удалении тикера остается выбор
 export default {
   name: 'App',
 
@@ -286,6 +286,12 @@ export default {
         (price) => 5 + ((price - minValue) * 95) / (maxValue - minValue)
       )
     },
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page,
+      }
+    },
   },
   methods: {
     subscribeToUpdates(tickerName) {
@@ -316,10 +322,9 @@ export default {
           price: '-',
         }
 
-        this.tickers.push(currentTicker)
+        this.tickers = [...this.tickers, currentTicker]
         this.filter = ''
 
-        localStorage.setItem('cryptonomicon-list', JSON.stringify(this.tickers))
         this.subscribeToUpdates(currentTicker.name)
       } else if (
         this.tickers.find(
@@ -372,6 +377,10 @@ export default {
       this.graph = []
     },
 
+    tickers() {
+      localStorage.setItem('cryptonomicon-list', JSON.stringify(this.tickers))
+    },
+
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
         this.page -= 1
@@ -379,17 +388,13 @@ export default {
     },
     filter() {
       this.page = 1
-      window.history.pushState(
-        null,
-        document.title,
-        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
-      )
     },
-    page() {
+
+    pageStateOptions(value) {
       window.history.pushState(
         null,
         document.title,
-        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+        `${window.location.pathname}?filter=${value.filter}&page=${value.page}`
       )
     },
   },
